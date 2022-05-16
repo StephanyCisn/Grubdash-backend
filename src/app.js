@@ -15,6 +15,8 @@ app.use(express.json());
 
 app.use("/dishes", dishesRouter);
 app.use("/orders", ordersRouter);
+app.use("/", dishesRouter);
+app.use("/", ordersRouter);
 
 app.use(notFound);
 

@@ -1,5 +1,4 @@
 const path = require("path");
-
 // Use the existing dishes data
 const dishes = require(path.resolve("src/data/dishes-data"));
 
@@ -7,104 +6,145 @@ const dishes = require(path.resolve("src/data/dishes-data"));
 const nextId = require("../utils/nextId");
 
 // TODO: Implement the /dishes handlers needed to make the tests pass
-function isProperDish(req, res, next) {
-  const { data: { name, description, price, image_url } = {} } = req.body;
-  if (!name || name === "") {
-    next({ status: 400, message: "Dish must include a name" });
-  } else if (!description || description == "") {
-    next({ status: 400, message: "Dish must include a description" });
-  } else if (!price) {
-    next({ status: 400, message: "Dish must include a price" });
-  } else if (!image_url || image_url == "") {
-    next({ status: 400, message: "Dish must include a image_url" });
-  } else if (!Number.isInteger(price) || Number(price) <= 0) {
-    next({
-      status: 400,
-      message: "Dish must have a price that is an integer greater than 0",
-    });
-  } else {
-    res.locals.name = name;
-    res.locals.description = description;
-    res.locals.price = price;
-    res.locals.image_url = image_url;
-    next();
-  }
+function list(req, res, next) {
+  res.json({ data: dishes });
 }
 
-
-function dishExists(req, res, next) {
-  const { dishId } = req.params;
-  const dish = dishes.find((dish, index) => {
-    if (dish.id === dishId) {
-      res.locals.foundDishIndex = index;
-      return dish;
-    }
-  });
-
-  if (!dish) {
-    next({ status: 404, message: `dish ${dishId} does not exist` });
-  } else {
-    res.locals.dish = dish;
-    next();
-  }
-}
-
-function read(req, res, next) {
-  if (res.locals.dish) {
-    res.status(200).json({ data: res.locals.dish });
-  } else {
-    next({ status: 404 });
-  }
+function read(req, res) {
+  res.json({ data: res.locals.dish });
 }
 
 function create(req, res, next) {
-  const newId = nextId();
+  let newId = nextId();
   const newDish = {
     id: newId,
-    name: res.locals.name,
-    description: res.locals.description,
-    price: res.locals.price,
-    image_url: res.locals.image_url,
+    ...res.locals.newDish,
   };
   dishes.push(newDish);
   res.status(201).json({ data: newDish });
 }
 
-function list(req, res, next) {
-  res.status(200).json({ data: dishes });
+function hasName(req, res, next) {
+  const { data: dish } = req.body;
+  if (!dish.name || dish.name === "") {
+    return next({ status: 400, message: "A 'name' property is required." });
+  }
+  res.locals.dishValidation = dish;
+  next();
+}
+
+function hasDescription(req, res, next) {
+  const dish = res.locals.dishValidation;
+  if (!dish.description || dish.description === "") {
+    return next({
+      status: 400,
+      message: "A 'description' property is required.",
+    });
+  }
+  next();
+}
+
+function hasPrice(req, res, next) {
+  const dish = res.locals.dishValidation;
+  if (!dish.price) {
+    return next({
+      status: 400,
+      message: `Dish must include a price`,
+    });
+  } else if (dish.price <= 0 || typeof dish.price !== "number") {
+    return next({
+      status: 400,
+      message: `Dish must have a price that is an integer greater than 0`,
+    });
+  }
+  next();
+}
+
+function hasImage(req, res, next) {
+  const dish = res.locals.dishValidation;
+  if (!dish.image_url || dish.image_url === "") {
+    return next({
+      status: 400,
+      message: "A 'image_url' property is required.",
+    });
+  }
+  next();
+}
+
+function dishExists(req, res, next) {
+  const dishId = req.params.dishId;
+  const foundDish = dishes.find((dish) => dish.id === dishId);
+  if (foundDish) {
+    res.locals.dish = foundDish;
+    return next();
+  }
+  next({
+    status: 404,
+    message: `Dish does not exist: ${req.params.dishId}`,
+  });
+}
+
+function postPropertiesAreValid(req, res, next) {
+  res.locals.newDish = res.locals.dishValidation;
+  next();
 }
 
 function update(req, res, next) {
+  const foundDish = res.locals.dish;
+  const { data: { name, description, price, image_url } = {} } = req.body;
+  foundDish.name = name;
+  foundDish.description = description;
+  if (typeof price == "number") {
+    foundDish.price = price;
+  } else {
+    next({
+      status: 400,
+      message: `Price is not a number!`,
+    });
+  }
+  foundDish.image_url = image_url;
+  res.json({ data: res.locals.dish });
+}
+
+function updateValidation(req, res, next) {
   const { dishId } = req.params;
+  const newDish = res.locals.newDish;
   const {
     data: { id },
   } = req.body;
   if (id) {
-    console.log(id, dishId, typeof id, typeof dishId)
-    if (id !== dishId) {
-     return next({ status: 400, message: `Url id ${dishId} does not match request body id ${id}.` });
-    }
-  } 
-
-  if (res.locals.dish) {
-    const newDish = dishes.find((dish) => {
-      if (dish.id === dishId) {
-        dish.name = res.locals.name;
-        dish.description = res.locals.description;
-        dish.price = res.locals.price;
-        dish.image_url = res.locals.image_url;
-      }
-      return dish;
-    });
-    res.status(200).json({ data: newDish });
-  } else {
-    next({ status: 404 });
+    return newDish.id == dishId
+      ? next()
+      : next({
+          status: 400,
+          message: `Dish id does not match route id. Dish: ${newDish.id}, Route: ${dishId}`,
+        });
   }
+  newDish.id = dishId;
+  res.locals.newDish = { ...newDish };
+
+  next();
 }
 
 module.exports = {
   list,
-  create: [isProperDish, create],
   read: [dishExists, read],
-  update: [dishExists, isProperDish, update],
+  create: [
+    hasName,
+    hasDescription,
+    hasPrice,
+    hasImage,
+    postPropertiesAreValid,
+    create,
+  ],
+  update: [
+    dishExists,
+    hasName,
+    hasDescription,
+    hasPrice,
+    hasImage,
+    postPropertiesAreValid,
+    updateValidation,
+    update,
+  ],
 };
