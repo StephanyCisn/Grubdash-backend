@@ -1,183 +1,143 @@
-// Add middleware and handlers for orders to this file, then export the functions for use by the router.
-
-
 const path = require("path");
 
 // Use the existing order data
 const orders = require(path.resolve("src/data/orders-data"));
 
 // Use this function to assigh ID's when necessary
-const nextId = require("../utils/nextId");  
- 
+const nextId = require("../utils/nextId");
+
 // TODO: Implement the /orders handlers needed to make the tests pass
 
-
-// DOES ORDER EXIST VALIDATION
 function orderExists(req, res, next) {
-  const  orderId  = req.params.orderId;
-  const foundOrder = orders.filter((order) => order.id === orderId);
-  if (foundOrder.length > 0) {
-    res.locals.order = foundOrder;
-    next();
-  } else {
-    next({ status: 404, message: `Order ${orderId} not found.` });
-  }
-}
+  const { orderId } = req.params;
+  res.locals.order = orders.find((order) => order.id === orderId);
 
-// IS id VALID?
-function isIdValid(req, res, next) {
-  let { data: { id } } = req.body;
-  const orderId = req.params.orderId;
-  if (
-    req.body.data.id === null ||
-    req.body.data.id === undefined ||
-    req.body.data.id === ""
-  ) {
+  if (res.locals.order) {
     return next();
-  }
-  if (req.body.data.id !== orderId) {
-    next({
-      status: 400,
-      message: `Order id does not match route id. Order: ${id}, Route: ${orderId}`,
-    });
   } else {
-    next();
+    next({ status: 404, message: `order ${orderId} does not exist` });
   }
 }
 
-// IS deliverTo VALID - VALIDATION
-function isDeliverToValid(req, res, next) {
-  const { data: deliverTo } = req.body;
-  if (
-    req.body.data.deliverTo === null ||
-    req.body.data.deliverTo === "" ||
-    req.body.data.deliverTo === undefined
-  ) {
-    next({ status: 400, message: "Order must include a deliverTo." });
-  }
-  next();
-}
-
-
-// IS Status VALID?
-function isStatusValid(req, res, next) {
-  const { data: { status } = {} } = req.body;
-
-  try {
-    if (
-      status !== ("pending" || "preparing" || "out-for-delivery" || "delivered")
-    ) {
+function hasProperOrder(req, res, next) {
+  const {
+    data: { deliverTo, mobileNumber, status, dishes, id } = {},
+  } = req.body;
+  const { orderId } = req.params;
+  const validStatus = ["pending", "delivered", "preparing", "out-for-delivery"];
+  if (req.method == "PUT") {
+    if (!status || status === "" || !validStatus.includes(status)) {
       next({
         status: 400,
         message:
-          " Order must have a status of pending, preparing, out-for-delivery, delivered.",
+          "Order must have a status of pending, preparing, out-for-delivery, delivered",
       });
+    } else if (status === "delivered") {
+      next({ status: 400, message: "A delivered order cannot be changed" });
+    } else if (id) {
+      if (orderId != id) {
+        next({
+          status: 400,
+          message: `Order id does not match route id. Order: ${id}, Route: ${orderId}.`,
+        });
+      }
+    } else {
+      res.locals.status = status;
+      res.locals.id = orderId;
     }
-    if (status === "delivered") {
-      return next({
-        status: 400,
-        message: " A delivered order cannot be changed.",
-      });
-    }
-    next();
-  } catch (error) {
-    console.log("ERROR =", error);
   }
-}
-
-function validateCreate(req, res, next) {
-  const { deliverTo, mobileNumber, dishes } = req.body.data;
-  if (!deliverTo) {
-    next({ status: 400, message: "Order must include a deliverTo." });
-  }
-  if (!mobileNumber) {
-    next({ status: 400, message: "Order must include a mobileNumber." });
-  }
-  if (!dishes) {
-    next({ status: 400, message: "Order must include a dish." });
-  }
-  if (!Array.isArray(dishes) || !dishes.length > 0) {
+  if (!deliverTo || deliverTo === "") {
+    return next({ status: 400, message: "Order must include a deliverTo" });
+  } else if (!mobileNumber || mobileNumber === "") {
+    return next({ status: 400, message: "Order must include a mobileNumber" });
+  } else if (!dishes) {
+    return next({ status: 400, message: "Order must include a dish" });
+  } else if (!Array.isArray(dishes) || dishes.length === 0) {
     return next({
       status: 400,
-      message: `Dishes must include at least one dish.`,
+      message: "Order must include at least one dish",
+    });
+  } else {
+    dishes.forEach((dish, index) => {
+      const { quantity } = dish;
+      if (!quantity || !Number.isInteger(quantity) || quantity <= 0) {
+        return next({
+          status: 400,
+          message: `Dish ${index} must have a quantity that is an integer greater than 0`,
+        });
+      }
     });
   }
-  dishes.map((dish, index) => {
-    if (
-      !dish.quantity ||
-      !Number.isInteger(dish.quantity) ||
-      !dish.quantity > 0
-    ) {
-      return next({
-        status: 400,
-        message: `Dish ${index} must have a quantity that is an integer greater than 0.`,
-      });
-    }
-  });
-
-  res.locals.order = req.body.data;
-    next();
+  res.locals.deliverTo = deliverTo;
+  res.locals.mobileNumber = mobileNumber;
+  res.locals.dishes = dishes;
+  res.locals.status = status;
+  next();
 }
 
-// Create
-function create(req, res) {
-const newOrder = { ...res.locals.order, id: nextId() };
+function isPending(req, res, next) {
+  const order = res.locals.order;
+  if (order.status !== "pending") {
+    next({
+      status: 400,
+      message: "An order cannot be deleted unless it is pending",
+    });
+  } else {
+    next();
+  }
+}
+
+function destroy(req, res, next) {
+  const { orderId } = req.params;
+  orders.find((order, index) => {
+    if (order.id === orderId) {
+      orders.slice(index, 1);
+    }
+  });
+  res.sendStatus(204);
+}
+
+function create(req, res, next) {
+  const newOrder = {
+    id: nextId(),
+    deliverTo: res.locals.deliverTo,
+    mobileNumber: res.locals.mobileNumber,
+    status: res.locals.status,
+    dishes: res.locals.dishes,
+  };
   orders.push(newOrder);
   res.status(201).json({ data: newOrder });
 }
 
-// Read
-function read(req, res, next) {
-  const foundOrder = res.locals.order;
-  if (foundOrder) {
-    res.json({ data: foundOrder[0] });
-  }
+function update(req, res, next) {
+    const { orderId } = req.params;
+  const newOrder = orders.find((order) => {
+    if ((order.id = orderId)) {
+      (order.id = orderId),
+        (order.status = res.locals.status),
+        (order.deliverTo = res.locals.deliverTo),
+        (order.mobileNumber = res.locals.mobileNumber),
+        (order.dishes = res.locals.dishes);
+    }
+    return order;
+  });
+  res.status(200).json({ data: newOrder });
 }
 
-// Update
-function update(req, res) {
-  const orderId = req.params.orderId;
-  let { data: id, deliverTo, mobileNumber, status, dishes } = req.body;
-  let updatedOrder = {
-    id: orderId,
-    deliverTo: req.body.data.deliverTo,
-    mobileNumber: req.body.data.mobileNumber,
-    status: req.body.data.status,
-    dishes: req.body.data.dishes,
-  };
-
-  return res.json({ data: updatedOrder });
-}
-
-// Destroy
-function destroy(req, res, next) {
-  const orderId = req.params.orderId;
-  const foundOrder = res.locals.order;
-
-  const index = orders.find((order) => order.id === Number(orderId));
-  const toDelete = orders.splice(index, 1);
-  if (foundOrder[0].status === "pending") {
-    console.log("foundOrder.status = ", foundOrder[0].status);
-    res.sendStatus(204);
-  }
-
-  next({
-    status: 400,
-    message: "An order cannot be deleted unless it is pending.",
+function list(req, res, next) {
+  res.status(200).json({
+    data: orders,
   });
 }
 
-// List
-function list(req, res) {
-  res.json({ data: orders });
+function read(req, res, next) {
+  res.status(200).json({ data: res.locals.order });
 }
 
-
-
 module.exports = {
-  create: [validateCreate, create],
-  read: [orderExists, read],
-  update: [orderExists, validateCreate, isIdValid, isStatusValid, update],
-  destroy: [orderExists, destroy],
   list,
+  read: [orderExists, read],
+  create: [hasProperOrder, create],
+  update: [orderExists, hasProperOrder, update],
+  destroy: [orderExists, isPending, destroy],
 };

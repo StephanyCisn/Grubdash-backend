@@ -1,27 +1,11 @@
-// Add routes and attach handlers to the router exported by this file.
-
-
 const router = require("express").Router();
-const controller = require("./orders.controller");
 const methodNotAllowed = require("../errors/methodNotAllowed");
-
+const controller = require("./orders.controller")
 
 // TODO: Implement the /orders routes needed to make the tests pass
 
-router
-  .route("/")
-  .get(controller.list)
-  .post(controller.create)
-  .all(methodNotAllowed);
-
-router
-  .route("/:orderId")
-  .get(controller.read)
-  .put(controller.update)
-  .delete(controller.destroy)
-  .all(methodNotAllowed);
-
-
+router.route("/").get(controller.list).post(controller.create).all(methodNotAllowed)
+router.route("/:orderId").get(controller.read).put(controller.update).delete(controller.destroy).all(methodNotAllowed)
 
 module.exports = router;
 
