@@ -1,4 +1,4 @@
-GrubDash Backend and API
+# GrubDash Backend and API
 
 
 GrubDash is a fictional company that operates an online food ordering and food delivery platform.
@@ -7,17 +7,17 @@ For this Thinkful project, I set up a RESTful API, wrote custom validation funct
 
 
 
-Technology
+## Technology
 Built with Node.js and Express server framework
-API Documentation
+## API Documentation
 All requests return JSON response. All post requests require application/json body, and return JSON response.
 
-Endpoints for dishes:
-Get Dishes: GET to /dishes
+### Endpoints for dishes:
+## Get Dishes: GET to /dishes
 
 Requests all existing dish data.
 Successful GET requests will return an array of JSON objects representing the saved dishes. The response from the server should look like the following:
-{
+```{
   "data": [
     {
       "id": "d351db2b49b69679504652ea1cf38241",
@@ -29,10 +29,11 @@ Successful GET requests will return an array of JSON objects representing the sa
     // ...
   ]
 }
-Create New Dish: POST to /dishes
+```
+## Create New Dish: POST to /dishes
 
 POST request will be sent with a single JSON object like so:
-{
+``` {
   "data": {
     "name": "Dolcelatte and chickpea spaghetti",
     "description": "Spaghetti topped with a blend of dolcelatte and fresh chickpeas",
@@ -40,8 +41,9 @@ POST request will be sent with a single JSON object like so:
     "image_url": "https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg?h=530&w=350"
   }
 }
+```
 Successful POST requests will return the newly created dish as a JSON object. The response from the server should look like the following:
-{
+```{
   "data": {
     "id": "d351db2b49b69679504652ea1cf38241",
     "name": "Dolcelatte and chickpea spaghetti",
@@ -50,11 +52,12 @@ Successful POST requests will return the newly created dish as a JSON object. Th
     "image_url": "https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg?h=530&w=350"
   }
 }
-Get Specific Dish: GET to /dishes/:dishId
+```
+## Get Specific Dish: GET to /dishes/:dishId
 
 Requests a specific dish by :dishId
 Successful GET requests will return a JSON object. The response from the server should look like this:
-{
+```{
   "data": {
     "id": "d351db2b49b69679504652ea1cf38241",
     "name": "Dolcelatte and chickpea spaghetti",
@@ -63,10 +66,11 @@ Successful GET requests will return a JSON object. The response from the server 
     "image_url": "https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg?h=530&w=350"
   }
 }
-Update a Dish: PUT to /dishes/:dishId
+```
+## Update a Dish: PUT to /dishes/:dishId
 
 PUT request will be sent with a single JSON object like so:
-{
+```{
   "data": {
     "id": "3c637d011d844ebab1205fef8a7e36ea",
     "name": "Century Eggs",
@@ -75,9 +79,10 @@ PUT request will be sent with a single JSON object like so:
     "price": "17"
   }
 }
+```
 Note: The id property isn't required in the body of the request, but if it is present, it must match :dishId from the route.
 The response from the server should look like the following:
-{
+```{
   "data": {
     "id": "3c637d011d844ebab1205fef8a7e36ea",
     "name": "Century Eggs",
@@ -86,12 +91,13 @@ The response from the server should look like the following:
     "price": "17"
   }
 }
+```
 Endpoints for orders:
 Get Orders: GET to /orders
 
 Requests a list of all existing order data.
 Successful GET requests will return an array of JSON objects representing the saved orders. The response from the server should look like the following:
-{
+```{
   "data": [
     {
       "id": "5a887d326e83d3c5bdcbee398ea32aff",
@@ -113,10 +119,11 @@ Successful GET requests will return an array of JSON objects representing the sa
     // ...
   ]
 }
+```
 Create New Order: POST to /orders
 
 POST request will be sent with a single JSON object like so:
-{
+```{
   "data": {
     "deliverTo": "308 Negra Arroyo Lane, Albuquerque, NM",
     "mobileNumber": "(505) 143-3369",
@@ -133,9 +140,10 @@ POST request will be sent with a single JSON object like so:
     ]
   }
 }
+```
 Note: Each dish in the Order's dishes property is a complete copy of the dish, rather than a reference to the dish by ID. This is so the order does not change retroactively if the dish data is updated some time after the order is created.
 Successful POST requests will return the newly created order as a JSON object. The response from the server should look like the following:
-{
+```{
   "data": {
     "id": "5a887d326e83d3c5bdcbee398ea32aff",
     "deliverTo": "308 Negra Arroyo Lane, Albuquerque, NM",
@@ -153,11 +161,12 @@ Successful POST requests will return the newly created order as a JSON object. T
     ]
   }
 }
+```
 Get Order by ID: GET to /orders/:orderId
 
 Requests a specific order by :orderId
 Successful GET requests will return a JSON object. The response from the server should look like this:
-{
+```{
   "data": {
     "id": "f6069a542257054114138301947672ba",
     "deliverTo": "1600 Pennsylvania Avenue NW, Washington, DC 20500",
@@ -175,10 +184,11 @@ Successful GET requests will return a JSON object. The response from the server 
     ]
   }
 }
+```
 Update Order: PUT to /orders/:orderId
 
 PUT request will be sent with a single JSON object like so:
-{
+```{
   "data": {
     "deliverTo": "Rick Sanchez (C-132)",
     "mobileNumber": "(202) 456-1111",
@@ -195,9 +205,10 @@ PUT request will be sent with a single JSON object like so:
     ]
   }
 }
+```
 Note: The id property isn't required in the body of the request, but if it is present, it must match :orderId from the route.
 The response from the server should look like the following:
-{
+```{
   "data": {
     "id": "f6069a542257054114138301947672ba",
     "deliverTo": "Rick Sanchez (C-132)",
@@ -215,6 +226,7 @@ The response from the server should look like the following:
     ]
   }
 }
+```
 Delete Order: DELETE to /orders/:orderId
 
 DELETE request will be sent without a request body.
